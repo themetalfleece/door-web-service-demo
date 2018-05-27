@@ -1,0 +1,244 @@
+<head>
+    <script src="client/jquery-3.2.1.min.js"></script>
+
+    <style>
+        .person:hover {
+            cursor: pointer;
+        }
+    </style>
+
+    <title> Simulation </title>
+</head>
+
+<body>
+
+    <div style="position: relative;">
+        <canvas id="officeCanvas" width="704" height="550" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+        <canvas id="personCanvas" width="1000" height="550" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+    </div>
+
+    <br>
+    <img src="assets/p1.png" style="display: none;">
+    <img src="assets/p2.png" style="display: none;">
+    <img src="assets/p3.png" style="display: none;">
+    <img src="assets/p4.png" style="display: none;">
+    <img src="assets/p5.png" style="display: none;">
+    <img src="assets/p6.png" style="display: none;">
+    <img src="assets/button.png" style="display: none;">
+</body>
+
+<script>
+    $(document).ready(function () {
+
+        var positions = {
+            'p1': {
+                out: {
+                    x: 710,
+                    y: 10
+                },
+                in: {
+                    x: 37,
+                    y: 261
+                }
+            },
+            'p2': {
+                out: {
+                    x: 810,
+                    y: 10
+                },
+                in: {
+                    x: 308,
+                    y: 393
+                }
+            },
+            'p3': {
+                out: {
+                    x: 910,
+                    y: 10
+                },
+                in: {
+                    x: 0,
+                    y: 0
+                }
+            },
+            'p4': {
+                out: {
+                    x: 710,
+                    y: 150
+                },
+                in: {
+                    x: 167,
+                    y: 23
+                }
+            },
+            'p5': {
+                out: {
+                    x: 810,
+                    y: 150
+                },
+                in: {
+                    x: 0,
+                    y: 0
+                }
+            },
+            'p6': {
+                out: {
+                    x: 910,
+                    y: 150
+                },
+                in: {
+                    x: 498,
+                    y: 36
+                }
+            },
+            'door': {
+                out: {
+                    x: 700,
+                    y: 290
+                },
+                in: {
+                    x: 551,
+                    y: 290
+                }
+            }
+        }
+
+        var peopleImages = {};
+
+        var peopleDimensions = {
+            x: 90,
+            y: 128
+        }
+
+        var c = document.getElementById("officeCanvas");
+        c.addEventListener('click', function (evt) {
+        }, false);
+        var ctxOffice = c.getContext("2d");
+
+        var c = document.getElementById("personCanvas");
+        var ctxPerson = c.getContext("2d");
+        c.addEventListener('click', function (evt) {
+            console.log(evt.clientX, evt.clientY)
+            handlePersonClicking(ctxPerson, evt.clientX, evt.clientY);
+        }, false);
+
+
+
+        var bg = new Image;
+        bg.src = "assets/layout.png";
+        bg.onload = function () {
+            ctxOffice.drawImage(this, 0, 0);
+        }
+
+        for (var i = 1; i <= 6; i++) {
+            var p = new Image;
+            p.src = "assets/p" + i + ".png";
+            peopleImages['p' + i] = p;
+            ctxPerson.drawImage(p, positions['p' + i].out.x, positions['p' + i].out.y);
+        }
+
+        var p = new Image;
+        p.src = "assets/button.png";
+        ctxPerson.drawImage(p, 629, 253);
+
+        function handlePersonClicking(ctx, x, y) {
+            // check outside clicking
+            for (var i = 1; i <= 6; i++) {
+                var personEnum = 'p' + i;
+                var personX = positions[personEnum].out.x;
+                var personY = positions[personEnum].out.y;
+
+                if (x >= personX && x <= personX + peopleDimensions.x && y >= personY && y <= personY + peopleDimensions.y) {
+                    var clicked = i;
+                    ctx.clearRect(personX, personY, peopleDimensions.x, peopleDimensions.y);
+                    ctx.drawImage(peopleImages[personEnum], positions['door'].out.x, positions['door'].out.y);
+                    $.post("/goIn",
+                        {
+                            id: clicked,
+                        },
+                        function (data, status) {
+                            if (data.authorized) {
+                                setTimeout(function () {
+                                    ctx.fillStyle = "#00FF00";
+                                    ctx.fillRect(680, 305, 13, 110);
+                                }, 1000)
+                                setTimeout(function () {
+                                    ctx.clearRect(positions['door'].out.x, positions['door'].out.y, peopleDimensions.x, peopleDimensions.y);
+                                    ctx.drawImage(peopleImages[personEnum], positions[personEnum].in.x, positions[personEnum].in.y);
+                                    ctx.clearRect(680, 305, 13, 110);
+                                }, 2000)
+                            }
+                            else {
+                                setTimeout(function () {
+                                    ctx.fillStyle = "#FF0000";
+                                    ctx.fillRect(680, 305, 13, 110);
+                                }, 1000)
+                                setTimeout(function () {
+                                    ctx.clearRect(positions['door'].out.x, positions['door'].out.y, peopleDimensions.x, peopleDimensions.y);
+                                    ctx.drawImage(peopleImages[personEnum], positions[personEnum].out.x, positions[personEnum].out.y);
+                                    ctx.clearRect(680, 305, 13, 110);
+                                }, 2000)
+                            }
+                        });
+                    return;
+                }
+            }
+            // check inside clicking
+            for (var i = 1; i <= 6; i++) {
+                var personEnum = 'p' + i;
+                var personX = positions[personEnum].in.x;
+                var personY = positions[personEnum].in.y;
+
+                if (x >= personX && x <= personX + peopleDimensions.x && y >= personY && y <= personY + peopleDimensions.y) {
+                    var clicked = i;
+                    ctx.clearRect(personX, personY, peopleDimensions.x, peopleDimensions.y);
+                    ctx.drawImage(peopleImages[personEnum], positions['door'].in.x, positions['door'].in.y);
+                    $.post("/goOut",
+                        {
+                            id: clicked,
+                        },
+                        function (data, status) {
+                            if (data.authorized) {
+                                setTimeout(function () {
+                                    ctx.fillStyle = "#00FF00";
+                                    ctx.fillRect(680, 305, 13, 110);
+                                }, 1000)
+                                setTimeout(function () {
+                                    ctx.clearRect(positions['door'].in.x, positions['door'].in.y, peopleDimensions.x, peopleDimensions.y);
+                                    ctx.drawImage(peopleImages[personEnum], positions[personEnum].out.x, positions[personEnum].out.y);
+                                    ctx.clearRect(680, 305, 13, 110);
+                                }, 2000)
+                            }
+                            else {
+                                setTimeout(function () {
+                                    ctx.fillStyle = "#FF0000";
+                                    ctx.fillRect(680, 305, 13, 110);
+                                }, 1000)
+                                setTimeout(function () {
+                                    ctx.clearRect(positions['door'].in.x, positions['door'].in.y, peopleDimensions.x, peopleDimensions.y);
+                                    ctx.drawImage(peopleImages[personEnum], positions[personEnum].out.x, positions[personEnum].out.y);
+                                    ctx.clearRect(680, 305, 13, 110);
+                                }, 2000)
+                            }
+                        });
+                    return;
+                }
+            }
+
+            // check button press
+            if (x >= 629 && x <= 629 + 47 && y >= 253 && y <= 253 + 47) {
+                ctx.fillStyle = "#00FF00";
+                ctx.fillRect(680, 305, 13, 110);
+                $.post("/button",
+                    {
+                        id: clicked,
+                    },
+                    function (data, status) {
+                        // handle response ?
+                    });
+            }
+        }
+
+    });
+
+</script>
